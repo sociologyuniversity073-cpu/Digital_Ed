@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 윤리 토론 코치: 도덕적 행위자편</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --chat-bg: #ffffff;
+            --primary-color: #4a90e2;
+            --ai-msg: #e8f0fe;
+            --user-msg: #dcf8c6;
+        }
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #chat-container {
+            width: 90%;
+            max-width: 600px;
+            height: 80vh;
+            background: var(--chat-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #chat-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        #chat-window {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .ai { align-self: flex-start; background: var(--ai-msg); color: #333; }
+        .user { align-self: flex-end; background: var(--user-msg); color: #333; }
+        #input-area {
+            border-top: 1px solid #ddd;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+        #send-btn {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #send-btn:disabled { background: #ccc; }
+        .system-msg {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="chat-header">
+        도덕적 행위성 탐구 챗봇 (예비교사 전용)
+    </div>
+    <div id="chat-window">
+        <div class="message ai">
+            안녕하세요, 예비교사님! 오늘은 <b>"AI가 도덕적 행위자가 될 수 있는가"</b>라는 주제로 이야기를 나눠보려 합니다. <br><br>
+            먼저 질문을 드릴게요. 당신은 기계가 '선악'을 스스로 판단하고 그에 따른 책임을 질 수 있다고 생각하시나요?
+        </div>
+    </div>
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="메시지를 입력하세요..." onkeypress="if(event.keyCode==13) sendMessage()">
+        <button id="send-btn" onclick="sendMessage()">전송</button>
+    </div>
+</div>
+
+<script>
+    let chatCount = 0;
+    const maxChats = 10;
+    const chatWindow = document.getElementById('chat-window');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // AI의 유도 질문 리스트 (대화 단계별)
+    const aiQuestions = [
+        "그렇게 생각하시는군요. 그렇다면, 인간의 '양심'과 AI의 '알고리즘'은 근본적으로 어떤 차이가 있을까요?",
+        "만약 AI가 잘못된 판단을 내려 누군가에게 피해를 입혔다면, 그 AI를 '감옥'에 보내거나 '처벌'하는 것이 의미가 있을까요?",
+        "도덕적 행위자가 되려면 자신의 행동을 '의식'하고 '자율적'으로 결정해야 합니다. 프로그램된 연산이 자율적 결정일 수 있을까요?",
+        "감정을 느끼지 못하는 존재가 '도덕적 공감'을 바탕으로 한 행위를 할 수 있다고 보시나요?",
+        "칸트는 '자유'를 도덕의 조건으로 보았습니다. 설계된 코드 내에서 움직이는 AI에게 진정한 의미의 자유가 있을까요?",
+        "결국 AI의 출력값은 개발자와 데이터의 영향입니다. 그렇다면 책임의 소재는 어디에 있어야 할까요?",
+        "도덕적 주체(Subject)와 도덕적 수혜자(Patient)는 다를 수 있습니다. AI는 단지 도구를 넘어설 수 있을까요?",
+        "훌륭한 답변입니다. 이제 대화가 막바지네요. '의도성(Intentionality)' 측면에서 AI와 인간의 차이를 정리해보면 어떨까요?",
+        "마지막으로, 미래의 교실에서 학생들에게 'AI는 도구일 뿐인가, 친구인가'를 가르친다면 어떻게 결론지으시겠습니까?"
+    ];
+
+    function appendMessage(sender, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message', sender);
+        msgDiv.innerHTML = text;
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function isInvalidInput(text) {
+        // 1. 반복된 문자 (예: zzzzzz, ㅎㅎㅎㅎㅎㅎ)
+        const repeatRegex = /(.)\1{4,}/;
+        // 2. 특수 기호로만 구성된 경우
+        const symbolRegex = /^[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/;
+        // 3. 특정 부적절 명령 (오목, 게임 등)
+        const gameWords = ['오목', '바둑', '게임하자', '플레이'];
+
+        if (text.length < 2) return "좀 더 구체적으로 말씀해 주세요.";
+        if (repeatRegex.test(text)) return "무의미한 반복 문자는 입력하실 수 없습니다.";
+        if (symbolRegex.test(text)) return "기호보다는 문장으로 대화해 주세요.";
+        if (gameWords.some(word => text.includes(word))) return "저는 게임 서비스가 아닌, 도덕적 행위성에 대해 논의하는 학습 챗봇입니다.";
+        
+        return null;
+    }
+
+    function sendMessage() {
+        if (chatCount >= maxChats) return;
+
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        // 이상 입력 검사
+        const errorMsg = isInvalidInput(text);
+        if (errorMsg) {
+            alert(errorMsg);
+            userInput.value = '';
+            return;
+        }
+
+        // 사용자 메시지 추가
+        appendMessage('user', text);
+        userInput.value = '';
+        chatCount++;
+
+        // AI 답변 로직
+        setTimeout(() => {
+            if (chatCount < maxChats) {
+                const nextQ = aiQuestions[chatCount - 1] || "그 점에 대해 더 깊이 생각해 볼 가치가 있군요. 예비교사님의 생각을 더 들려주세요.";
+                appendMessage('ai', nextQ);
+            } else {
+                finishConversation();
+            }
+        }, 800);
+    }
+
+    function finishConversation() {
+        appendMessage('ai', "<b>대화가 종료되었습니다.</b><br>오늘의 토론을 요약해 보겠습니다.");
+        
+        const summary = `
+            <div style="background: #fff; border: 1px solid #4a90e2; padding: 10px; margin-top: 10px; border-radius: 10px;">
+                <strong>[토론 요약 결과]</strong><br>
+                1. 주제: AI의 도덕적 행위 주체성 여부<br>
+                2. 주요 논점: 자율성, 의식, 책임 소재, 공감 능력<br>
+                3. 결론적 통찰: AI는 규범을 학습할 순 있으나, 스스로 책임을 지거나 의도를 갖는 '행위자'라기보다는 인간의 윤리를 보조하는 '도구적 성격'이 강함을 확인하였습니다.
+            </div>
+            <p style="text-align:center; color: #4a90e2;"><b>훌륭한 예비교사가 되시길 응원합니다!</b></p>
+        `;
+        appendMessage('ai', summary);
+        
+        userInput.disabled = true;
+        userInput.placeholder = "대화가 종료되었습니다.";
+        sendBtn.disabled = true;
+
+        const systemDiv = document.createElement('div');
+        systemDiv.classList.add('system-msg');
+        systemDiv.innerText = "모든 대화 단계가 완료되었습니다. 창을 새로고침하여 다시 시작할 수 있습니다.";
+        chatWindow.appendChild(systemDiv);
+    }
+</script>
+
+</body>
+</html>
